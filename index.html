@@ -1,11 +1,271 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pac-Man Arcade</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d18;
+      --panel: #131c2d;
+      --yellow: #ffdf38;
+      --blue: #46b9ff;
+      --muted: #9aabc4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, #172543, var(--bg) 65%);
+      color: #f5f7ff;
+      font-family: system-ui, sans-serif;
+    }
+
+    header {
+      padding: 22px;
+      text-align: center;
+      border-bottom: 1px solid #25334c;
+    }
+
+    header h1 {
+      margin: 0;
+      color: var(--yellow);
+      letter-spacing: 4px;
+    }
+
+    header p { color: var(--muted); margin-bottom: 0; }
+
+    main {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid #293750;
+      border-radius: 16px;
+      padding: 20px;
+      min-width: 0;
+    }
+
+    h2 { margin-top: 0; font-size: 20px; }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      background: #0b1220;
+      padding: 12px;
+      border-radius: 10px;
+      flex: 1;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat strong { color: var(--yellow); font-size: 22px; }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 448px;
+      height: auto;
+      margin: auto;
+      background: #050916;
+      border: 2px solid #233c81;
+      border-radius: 8px;
+      image-rendering: pixelated;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 14px;
+      background: var(--yellow);
+      color: #151515;
+      font-weight: 700;
+    }
+
+    button.secondary {
+      background: #263650;
+      color: white;
+    }
+
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    input {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 9px 0 14px;
+      border: 1px solid #344660;
+      border-radius: 8px;
+      background: #0b1220;
+      color: white;
+    }
+
+    label { font-size: 14px; color: #c8d3e6; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tabs button { flex: 1; }
+    .tabs button.active { background: var(--blue); }
+
+    .message {
+      min-height: 24px;
+      font-size: 13px;
+      color: var(--blue);
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { color: #ff8d9b; }
+
+    .user-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .user-line button { padding: 7px 10px; }
+
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 11px 6px; border-bottom: 1px solid #293750; text-align: left; }
+    th { color: var(--muted); font-size: 13px; }
+    td:last-child, th:last-child { text-align: right; }
+    .rank { color: var(--yellow); font-weight: 800; }
+
+    #accountStatus { color: var(--blue); font-size: 13px; }
+
+    @media (max-width: 760px) {
+      main { grid-template-columns: 1fr; }
+      .panel { padding: 15px; }
+    }
+  </style>
 </head>
 <body>
-    テスト
+  <header>
+    <h1>🟡 PAC-MAN ARCADE</h1>
+    <p>迷路を駆け抜け、ハイスコアを目指そう。</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>GAME</h2>
+
+      <div class="stats">
+        <div class="stat">
+          <span>SCORE</span>
+          <strong id="score">0</strong>
+        </div>
+        <div class="stat">
+          <span>PLAYER</span>
+          <strong id="playerName" style="font-size:16px">未ログイン</strong>
+        </div>
+      </div>
+
+      <canvas id="game" width="420" height="420"
+              aria-label="パックマンゲーム画面"></canvas>
+
+      <div class="controls">
+        <button id="startBtn">ゲーム開始</button>
+        <button id="restartBtn" class="secondary">リスタート</button>
+      </div>
+
+      <p id="gameMessage" class="message">
+        ログインしてゲームを開始しよう。
+      </p>
+      <p class="hint">
+        操作：キーボードの ↑ ↓ ← → キー<br>
+        ドットを食べると10点、パワードットは50点。
+        ゴーストに捕まらないように進もう。
+      </p>
+    </section>
+
+    <aside>
+      <section class="panel" style="margin-bottom:20px">
+        <h2>ACCOUNT</h2>
+
+        <div id="accountStatus">ログインしていません</div>
+
+        <div id="authPanel">
+          <div class="tabs">
+            <button id="loginTab" class="active">ログイン</button>
+            <button id="registerTab" class="secondary">新規登録</button>
+          </div>
+
+          <form id="authForm">
+            <label for="username">ユーザー名</label>
+            <input id="username" name="username"
+                   minlength="3" maxlength="50"
+                   autocomplete="username" required>
+
+            <label for="password">パスワード</label>
+            <input id="password" name="password" type="password"
+                   minlength="8" autocomplete="current-password" required>
+
+            <button id="authSubmit" type="submit" style="width:100%">
+              ログイン
+            </button>
+          </form>
+        </div>
+
+        <div id="loggedInPanel" hidden>
+          <div class="user-line">
+            <strong id="loggedInName"></strong>
+            <button id="logoutBtn" class="secondary">ログアウト</button>
+          </div>
+          <p class="hint">ゲーム終了時にスコアを登録できます。</p>
+        </div>
+
+        <p id="authMessage" class="message" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <h2>🏆 RANKING TOP 10</h2>
+        <button id="refreshRanking" class="secondary">更新</button>
+
+        <table>
+          <thead>
+            <tr><th>順位</th><th>プレイヤー</th><th>スコア</th></tr>
+          </thead>
+          <tbody id="rankingBody">
+            <tr><td colspan="3">読み込み中...</td></tr>
+          </tbody>
+        </table>
+
+        <p id="rankingMessage" class="hint"></p>
+      </section>
+    </aside>
+  </main>
+
+  <script src="./game.js"></script>
 </body>
 </html>
