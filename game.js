@@ -1,7 +1,7 @@
 "use strict";
 
 // WindowsのブラウザからUbuntu上のFastAPIへ接続
-const API_BASE = "http://192.168.1.1:8000";
+const API_BASE = "https://aggregate-por-have-purchasing.trycloudflare.com";
 
 const $ = (id) => document.getElementById(id);
 
